@@ -1,0 +1,80 @@
+# Bootstrap workflow — creates the AWS CodePipeline(s) for this service.
+#
+# Fires automatically on the first push to main.
+# Re-run manually via Actions → bootstrap-pipeline → Run workflow after reconfiguring.
+#
+# Required secrets (set in the repo via Settings → Secrets → Actions):
+#   AWS_ROLE_ARN            — IAM role with CDK deploy + CodePipeline permissions
+#   CODESTAR_CONNECTION_ARN — pre-existing CodeStar Connection for GitHub → CodePipeline
+
+name: bootstrap-pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - cdk/pipelines/**
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Install CDK dependencies
+        working-directory: cdk/pipelines
+        run: npm install
+
+      - name: CDK bootstrap (idempotent)
+        run: npx cdk bootstrap aws://${{ vars.AWS_ACCOUNT_ID }}/us-east-1 --region us-east-1
+        working-directory: cdk/pipelines
+        env:
+          CODESTAR_CONNECTION_ARN: ${{ secrets.CODESTAR_CONNECTION_ARN }}
+        continue-on-error: true
+
+      - name: Deploy pipeline stack(s)
+        working-directory: cdk/pipelines
+        run: npx cdk deploy --all --require-approval never
+        env:
+          CODESTAR_CONNECTION_ARN: ${{ secrets.CODESTAR_CONNECTION_ARN }}
+
+      - name: Start initial pipeline execution
+        env:
+          SERVICE_NAME: 'v7-commerce-cart-app-service'
+        run: |
+          for region in us-east-1; do
+            echo "Waiting for ${SERVICE_NAME}-${region}-main to become available..."
+            triggered=false
+            for attempt in 1 2 3 4 5; do
+              if aws codepipeline get-pipeline \
+                  --name "${SERVICE_NAME}-${region}-main" \
+                  --region "${region}" \
+                  --output text > /dev/null 2>&1; then
+                aws codepipeline start-pipeline-execution \
+                  --name "${SERVICE_NAME}-${region}-main" \
+                  --region "${region}" \
+                && echo "✓ triggered ${region}" && triggered=true && break
+              fi
+              echo "  attempt ${attempt}/5 — not ready yet, retrying in 15s..."
+              sleep 15
+            done
+            if [ "$triggered" = "false" ]; then
+              echo "✗ Could not trigger ${region} after 5 attempts" && exit 1
+            fi
+          done

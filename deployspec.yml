@@ -1,0 +1,39 @@
+# CodeBuild deployspec — runs inside each Deploy-<env> stage of the
+# per-region CodePipeline (cdk/pipelines/main-pipeline-stack.ts).
+#
+# TARGET_ENV    = dev | qa | uat | prod  (set by the per-env CodeBuild project)
+# TARGET_REGION = the region the pipeline is scoped to                         (set by the per-region pipeline stack)
+
+version: 0.2
+
+env:
+  variables:
+    SERVICE_NAME: 'v7-commerce-cart-app-service'
+  secrets-manager:
+    ARGOCD_SERVER:     'argocd/server'
+    ARGOCD_AUTH_TOKEN: 'argocd/token'
+  exported-variables:
+    - DEPLOYED_TAG
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.11.0/argocd-linux-amd64
+      - chmod +x /usr/local/bin/argocd
+      - argocd version --client
+
+  pre_build:
+    commands:
+      - IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
+      - APP_NAME="$SERVICE_NAME-$TARGET_ENV-$TARGET_REGION"
+      - argocd login "$ARGOCD_SERVER" --auth-token "$ARGOCD_AUTH_TOKEN" --grpc-web
+
+  build:
+    commands:
+      - argocd app set "$APP_NAME" --kustomize-image "$SERVICE_NAME=$SERVICE_NAME:$IMAGE_TAG" --grpc-web
+      - argocd app sync "$APP_NAME" --grpc-web --prune
+      - argocd app wait "$APP_NAME" --grpc-web --timeout 600 --health --sync
+      - export DEPLOYED_TAG=$IMAGE_TAG
+      - echo "Deployed $APP_NAME @ $IMAGE_TAG"

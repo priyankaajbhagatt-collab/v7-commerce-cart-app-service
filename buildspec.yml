@@ -1,0 +1,45 @@
+# CodeBuild buildspec — runs inside the Build stage of the per-service
+# CodePipeline (defined in cdk/pipelines/main-pipeline-stack.ts).
+#
+# Triggered on every push to `main` after auto-merge fires. NOT used on PRs —
+# PRs are handled by .github/workflows/ci.yml.
+
+version: 0.2
+
+env:
+  variables:
+    SERVICE_NAME: 'v7-commerce-cart-app-service'
+    AWS_REGION: 'us-east-1'
+  exported-variables:
+    - IMAGE_URI
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - npm install -g yarn
+      - yarn install --frozen-lockfile
+
+  pre_build:
+    commands:
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - echo "Resolving ECR repo for $SERVICE_NAME..."
+      - REPO_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$SERVICE_NAME
+      - IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
+
+  build:
+    commands:
+      - yarn lint
+      - yarn test
+      - yarn build
+      - docker build -t $REPO_URI:$IMAGE_TAG -t $REPO_URI:latest .
+      - docker push $REPO_URI:$IMAGE_TAG
+      - docker push $REPO_URI:latest
+      - export IMAGE_URI=$REPO_URI:$IMAGE_TAG
+
+artifacts:
+  files:
+    - deployspec.yml
+    - argocd/**/*
+  discard-paths: no

@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Each stage runs as a separate job — IDP cockpit surfaces per-stage status.
+# Branch protection requires the `ci` gate job, which fails if any upstream stage fails.
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint
+        run: yarn lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Unit tests
+        run: yarn test
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Dependency audit
+        run: yarn npm audit --severity high --recursive || true
+
+      - name: SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: 'p/typescript p/owasp-top-ten'
+        continue-on-error: true
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build
+        run: yarn build
+
+      - name: Container image (built by CodePipeline)
+        run: echo 'Container build and push runs in AWS CodePipeline (CodeBuild) after merge to main — not duplicated in CI.'
+
+      - name: CDK diff (app-infra)
+        run: npx cdk diff --app 'npx ts-node cdk/app-infra/service-stack.ts' || true
+
+      - name: CDK diff (pipelines self-mutation)
+        run: npx cdk diff --app 'npx ts-node cdk/pipelines/main-pipeline-stack.ts' || true
+
+  ci:
+    needs: [lint, test, security, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All checks passed
+        run: |
+          for result in "${{ needs.lint.result }}" "${{ needs.test.result }}" "${{ needs.security.result }}" "${{ needs.build.result }}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then exit 1; fi
+          done

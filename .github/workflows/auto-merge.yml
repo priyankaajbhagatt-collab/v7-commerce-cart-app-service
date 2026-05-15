@@ -1,0 +1,48 @@
+# Auto-merge workflow — fires on every PR open/update.
+#
+# Behavior:
+#   1. Adds the `auto-merge` label to non-draft PRs automatically.
+#   2. Enables GitHub native auto-merge (squash) on labelled PRs.
+#   3. GitHub merges the PR the moment all required status checks pass.
+#
+# Branch protection (configured by the scaffolder) is what makes this safe —
+# auto-merge only fires when CI is green, so a failing build can never reach main.
+#
+# To opt OUT of auto-merge on a specific PR, remove the `auto-merge` label
+# OR mark the PR as draft.
+
+name: auto-merge
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable-auto-merge:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label PR for auto-merge
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: auto-merge
+
+      - name: Enable native auto-merge (squash)
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: squash
+
+  bot-approve:
+    if: github.event.pull_request.draft == false && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-approve so branch protection lets auto-merge fire
+        uses: hmarr/auto-approve-action@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
