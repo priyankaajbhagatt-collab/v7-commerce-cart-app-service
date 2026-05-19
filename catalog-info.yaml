@@ -6,12 +6,13 @@ metadata:
   annotations:
     github.com/project-slug: priyankaajbhagatt-collab/v7-commerce-cart-app-service
     backstage.io/techdocs-ref: dir:.
-    backstage.io/kubernetes-label-selector: app=v7-commerce-cart-app-service
     backstage.io/source-location: url:https://github.com/priyankaajbhagatt-collab/v7-commerce-cart-app-service
-    argocd/app-selector: service=v7-commerce-cart-app-service
-    amway.io/markets: mys,tw,sg
-    amway.io/envs: dev,qa,uat,prod
     aws.amazon.com/aws-codepipeline-tags: Service=v7-commerce-cart-app-service
+    amway.io/markets: mys,tw,sg,tha,latam
+    amway.io/envs: dev,qa
+    amway.io/dev-url: https://v7-commerce-cart-app-service.dev.amway.io
+    amway.io/qa-url: https://v7-commerce-cart-app-service.qa.amway.io
+    amway.io/slack-channel: v7-commerce-cart-app-service-alerts
   links:
     - title: GitHub repository
       url: https://github.com/priyankaajbhagatt-collab/v7-commerce-cart-app-service
@@ -19,39 +20,31 @@ metadata:
     - title: Open PRs
       url: https://github.com/priyankaajbhagatt-collab/v7-commerce-cart-app-service/pulls
       icon: github
-    - title: Slack — #commerce-cart-general
-      url: https://slack.com/app_redirect?channel=commerce-cart-general
-      icon: chat
-    - title: Slack — #commerce-cart-approval
-      url: https://slack.com/app_redirect?channel=commerce-cart-approval
-      icon: chat
-    - title: CodePipeline (us-east-1)
-      url: https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/v7-commerce-cart-app-service-us-east-1-main/view?region=us-east-1
+
+    - title: CodePipeline (MYS)
+      url: https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/v7-commerce-cart-app-service-mys-main/view?region=us-east-1
       icon: dashboard
-    - title: ArgoCD — dev/us-east-1
-      url: https://argocd.dep.altimetrik.io/applications/v7-commerce-cart-app-service-dev-us-east-1
-      icon: cloud
-    - title: ArgoCD — qa/us-east-1
-      url: https://argocd.dep.altimetrik.io/applications/v7-commerce-cart-app-service-qa-us-east-1
-      icon: cloud
-    - title: ArgoCD — uat/us-east-1
-      url: https://argocd.dep.altimetrik.io/applications/v7-commerce-cart-app-service-uat-us-east-1
-      icon: cloud
-    - title: ArgoCD — prod/us-east-1
-      url: https://argocd.dep.altimetrik.io/applications/v7-commerce-cart-app-service-prod-us-east-1
-      icon: cloud
-    - title: ECR repo (us-east-1)
-      url: https://us-east-1.console.aws.amazon.com/ecr/repositories/private/v7-commerce-cart-app-service?region=us-east-1
-      icon: docs
-    - title: CloudWatch logs (us-east-1)
-      url: https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#logsV2:log-groups/log-group/%2Faws%2Fecs%2Fv7-commerce-cart-app-service
-      icon: docs
+
+    - title: CodePipeline (TW)
+      url: https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/v7-commerce-cart-app-service-tw-main/view?region=us-east-1
+      icon: dashboard
+
+    - title: CodePipeline (SG)
+      url: https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/v7-commerce-cart-app-service-sg-main/view?region=us-east-1
+      icon: dashboard
+
+    - title: CodePipeline (THA)
+      url: https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/v7-commerce-cart-app-service-tha-main/view?region=us-east-1
+      icon: dashboard
+
+    - title: CodePipeline (LATAM)
+      url: https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/v7-commerce-cart-app-service-latam-main/view?region=us-east-1
+      icon: dashboard
+
   tags:
-    - fastify
-    - api
-    - commerce
+    - apac
 spec:
   type: service
-  lifecycle: experimental
+  lifecycle: production
   owner: group:default/platform
   system: commerce-cart
