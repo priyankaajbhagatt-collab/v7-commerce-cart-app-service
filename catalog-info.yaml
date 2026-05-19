@@ -8,7 +8,7 @@ metadata:
     backstage.io/techdocs-ref: dir:.
     backstage.io/source-location: url:https://github.com/priyankaajbhagatt-collab/v7-commerce-cart-app-service
     aws.amazon.com/aws-codepipeline-tags: Service=v7-commerce-cart-app-service
-    amway.io/markets: mys,tw,sg,tha,latam
+    amway.io/markets: mys,tw,sg,tha,latam,can
     amway.io/envs: dev,qa
     amway.io/dev-url: https://v7-commerce-cart-app-service.dev.amway.io
     amway.io/qa-url: https://v7-commerce-cart-app-service.qa.amway.io
@@ -39,6 +39,10 @@ metadata:
 
     - title: CodePipeline (LATAM)
       url: https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/v7-commerce-cart-app-service-latam-main/view?region=us-east-1
+      icon: dashboard
+
+    - title: CodePipeline (CAN)
+      url: https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/v7-commerce-cart-app-service-can-main/view?region=us-east-1
       icon: dashboard
 
   tags:
